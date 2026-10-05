@@ -1,0 +1,66 @@
+name: Build and Release Mod Zip
+
+# Runs when a release is published, from the GitHub website or the command line,
+# and attaches the mod as royal-nightmare-v<version>.zip -- the name Ragnarok
+# Offline's mod registry looks for (royal-nightmare-*.zip).
+#
+# On GitHub: raise "version" in mod.json (e.g. 1.0.2) and commit, then
+# Releases -> Draft a new release -> Choose a tag -> type v1.0.2 ->
+# "Create new tag: v1.0.2 on publish" -> add a title and notes -> Publish release.
+# The zip appears on the release a minute or so later.
+#
+# From the command line, the same thing: gh release create v1.0.2 --generate-notes
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read the version from mod.json
+        id: version
+        run: |
+          name=$(jq -r .name mod.json)
+          version=$(jq -r .version mod.json)
+          tag="${{ github.event.release.tag_name }}"
+          if [ "v$version" != "$tag" ]; then
+            echo "::error::Release tag $tag does not match mod.json version $version. Raise the version in mod.json and commit, then delete this release and its tag and publish one tagged v$version."
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "zip=$name-v$version.zip" >> "$GITHUB_OUTPUT"
+
+      # The mod's files live at the top of this repository, so the zip's single
+      # top-level folder (royal-nightmare/, named after mod.json's "name") is
+      # built here. The app refuses a zip with anything else at the top, which
+      # is why nothing from a Mac (.DS_Store, __MACOSX) may go in.
+      - name: Create Zip Archive
+        run: |
+          dir="build/${{ steps.version.outputs.name }}"
+          mkdir -p "$dir"
+          cp mod.json "$dir/"
+          [ -f README.md ] && cp README.md "$dir/"
+          for d in npc db data lua client conf System BGM images; do
+            [ -d "$d" ] && cp -R "$d" "$dir/"
+          done
+          cd build
+          zip -r "../${{ steps.version.outputs.zip }}" "${{ steps.version.outputs.name }}" -x '*.DS_Store' '*__MACOSX*'
+          cd ..
+          unzip -l "${{ steps.version.outputs.zip }}"
+
+      - name: Release Zip to GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.version.outputs.zip }}
+          tag_name: ${{ github.event.release.tag_name }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
