@@ -1,0 +1,10 @@
+{
+  "name": "royal-nightmare",
+  "version": "1.0.0",
+  "author": "Lil Art",
+  "description": "Adds a custom instance to the game, situated in Nightmare Prontera.",
+  "requires": {
+    "app": ">=1.5.0",
+    "era": "renewal"
+  }
+}

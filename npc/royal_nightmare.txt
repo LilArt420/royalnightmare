@@ -1,0 +1,506 @@
+// ====================================================================
+// Royal Nightmare Standalone Script Instance Reader
+// By: Lil Art
+// - Horde 1 (500 each) -> 3 Witches -> Horde 2 (666 each) -> 5 Witches -> Finale
+// - 700 of each monster spawned per horde, 8h character-bound cooldown
+// ====================================================================
+
+// Map Flags
+prt_q	mapflag	loadevent
+prt_q	mapflag	nomemo
+prt_q	mapflag	noteleport
+prt_q	mapflag	nosave	SavePoint
+prt_q	mapflag	nopenalty
+
+// --- Entrance NPC: Central Prontera ---
+prontera,107,190,4	script	Nightwing	10297,{
+	mes "[Nightwing]";
+	mes "The shadow of the Royal Nightmare looms over Prontera...";
+
+	if (BaseLevel < 230) {
+		mes "^FF0000You must be at least Base Level 230 to enter this realm.^000000";
+		close;
+	}
+
+	// Re-enter (character bound)
+	if ($@RN_Active && $@RN_PlayerID == getcharid(0) && gettimetick(2) < $@RN_TimeLimit) {
+		.@rem = $@RN_TimeLimit - gettimetick(2);
+		.@mins = .@rem / 60;
+		.@secs = .@rem % 60;
+		mes "^00FF00Your instance is still active! Time remaining: " + .@mins + "m " + .@secs + "s.^000000";
+		next;
+		if (select("Re-enter Instance:Cancel") == 1) {
+			warp "prt_q", 154, 184;
+			end;
+		}
+		close;
+	}
+
+	// 8 hour cooldown (character variable)
+	if (RN_Cooldown > gettimetick(2)) {
+		.@cd = RN_Cooldown - gettimetick(2);
+		mes "^FF0000The Nightmare is still recovering from your last visit.^000000";
+		mes "Come back in ^0000FF" + (.@cd / 3600) + "h " + ((.@cd % 3600) / 60) + "m^000000.";
+		close;
+	}
+
+	next;
+	mes "[Nightwing]";
+	mes "On the night of the royal banquet, the crown of Rune-Midgarts fell without a single sword being drawn. The nobles raised their glasses... and by dawn, not one of them was left to lower it.";
+	next;
+	mes "[Nightwing]";
+	mes "A sorceress called the Nightmare Queen seized the throne in the chaos. Her Death Witches wove a curse through the very wine of the feast, and the banquet never ended. It became a nightmare with no waking.";
+	next;
+	mes "[Nightwing]";
+	mes "Prontera as you know it is gone. In its place stands a twisted mirror of the city, where every guest, guard and merchant has been turned into a monster.";
+	next;
+	mes "[Nightwing]";
+	mes "I can open a door into that place for you. Few who have gone in have come back out as themselves.";
+	next;
+	mes "[Nightwing]";
+	mes "Are you prepared to face the twisted horrors of the fallen court?";
+	next;
+
+	if (select("Enter Royal Nightmare:Cancel") == 2) close;
+
+	if ($@RN_Active) {
+		mes "[Nightwing]";
+		mes "Another adventurer is currently inside the Nightmare. The door will not open for two souls at once. Please try again shortly.";
+		close;
+	}
+
+	mes "[Nightwing]";
+	mes "Then step through. Remember: inside, I serve her. Do not forget that I am only pretending.";
+	close2;
+
+	$@RN_Active = 1;
+	$@RN_PlayerID = getcharid(0);	// character id (instance is character bound)
+	$@RN_AID = getcharid(3);	// account id, only used to attach the HUD
+	$@RN_Stage = 0;
+	$@RN_Phase = 0;
+	$@RN_Goal = 500;
+	$@RN_BossKilled = 0;
+	$@RN_BossNeed = 0;
+	$@RN_TimeLimit = gettimetick(2) + 3600;
+
+	// Remove every non-instance NPC from the map
+	donpcevent "RN_NpcCleaner::OnClear";
+
+	warp "prt_q", 154, 184;
+
+	mapannounce "prt_q", "Instance: Royal Nightmare | Player: " + strcharinfo(0) + " | Time Limit: 60 Minutes", bc_map, "0x00FFCC";
+
+	initnpctimer "RN_Core_Engine";
+	end;
+}
+
+// --- Instance Stage Manager ---
+prt_q,158,184,4	script	Nightwing#RN	10297,{
+	if (getcharid(0) != $@RN_PlayerID) end;
+
+	// Start: first horde
+	if ($@RN_Stage == 0) {
+		mes "[Nightwing]";
+		mes "^FF0000Her Majesty will be delighted! A fresh guest for the eternal banquet!^000000";
+		next;
+		mes "[Nightwing]";
+		mes "Keep smiling and listen closely, for her witches see through every shadow in this hall. I serve the Queen in name only. It is the only way I have stayed myself this long.";
+		next;
+		mes "[Nightwing]";
+		mes "These creatures around us were Prontera's people: nobles, soldiers, shopkeepers, children. The Death Witches twisted them with dark magic into Grote, Pierrotzoist and Disguiser. There is no cure for them anymore.";
+		next;
+		mes "[Nightwing]";
+		mes "The Queen means to turn you too. You are the guest of honor she has been waiting for.";
+		next;
+		mes "[Nightwing]";
+		mes "Cut down 500 of each kind to thin her hordes, and the Queen will be forced to show herself. Then I can help you finish this and lead you out safely.";
+		next;
+		mes "[Nightwing]";
+		mes "^FF0000Survive the onslaught, if you can!^000000";
+		close2;
+
+		$@RN_Phase = 1;
+		$@RN_Stage = 1;
+		hideonnpc "Nightwing#RN";
+		donpcevent "RN_Core_Engine::OnStartWave";
+		end;
+	}
+
+	// Horde cleared: call the Queen
+	if ($@RN_Stage == 2) {
+		mes "[Nightwing]";
+		if ($@RN_Phase == 3) {
+			mes "The Queen is beyond reason now. Her witches are gone, and the last of her power is bleeding into this place.";
+			next;
+			mes "[Nightwing]";
+			mes "^FF0000My Queen! The guest of honor awaits you!^000000";
+			next;
+			mes "[Nightwing]";
+			mes "Whatever she calls up, do not hesitate. When it falls, the curse on this city falls with it.";
+		} else if ($@RN_Phase == 2) {
+			mes "That was the last of them, and I know some of those faces. At least they are at peace.";
+			next;
+			mes "[Nightwing]";
+			mes "Watch for the witches. When the Queen is angry, she sends them first, and there are more of them this time.";
+			next;
+			mes "[Nightwing]";
+			mes "^FF0000Your Majesty, the horde is spent! Please, grace us with your presence!^000000";
+		} else {
+			mes "You have cleared the hordes, but the true sovereign of this nightmare awakens. I will call her. Be ready.";
+			next;
+			mes "[Nightwing]";
+			mes "^FF0000Your Majesty! Your guest has survived the entertainment and demands an audience!^000000";
+		}
+		close2;
+
+		hideonnpc "Nightwing#RN";
+		movenpc "Nightmare Queen#RN", 154, 184;
+		hideoffnpc "Nightmare Queen#RN";
+		end;
+	}
+
+	// Queen's forces defeated
+	if ($@RN_Stage == 4) {
+		if ($@RN_Phase == 1) {
+			mes "[Nightwing]";
+			mes "Her witches are broken, but the curse feeds on the fear of this place. The banquet hall is filling with more of the cursed.";
+			next;
+			mes "[Nightwing]";
+			mes "A second horde is coming, and this one is stronger and more numerous. Cut down 666 of each kind. The Queen will not show herself again until they are gone.";
+			next;
+			mes "[Nightwing]";
+			mes "^FF0000More guests for the feast, my Queen! Let the entertainment continue!^000000";
+			close2;
+
+			$@RN_Phase = 2;
+			$@RN_Stage = 1;
+			hideonnpc "Nightwing#RN";
+			donpcevent "RN_Core_Engine::OnStartWave";
+			end;
+		}
+		if ($@RN_Phase == 2) {
+			mes "[Nightwing]";
+			mes "Five of her witches, gone. Listen to me: the Queen is losing control of her own magic. She will call on something far worse.";
+			next;
+			mes "[Nightwing]";
+			mes "The old tales say she bound a fragment of a demi-goddess's power into the throne of this fallen court. If she wakes it, only one of us walks out of this hall.";
+			next;
+			mes "[Nightwing]";
+			mes "I will call her one last time. Hold nothing back.";
+			close2;
+
+			$@RN_Phase = 3;
+			$@RN_Stage = 2;
+			hideonnpc "Nightwing#RN";
+			movenpc "Nightmare Queen#RN", 154, 184;
+			hideoffnpc "Nightmare Queen#RN";
+			end;
+		}
+		// Phase 3: finished
+		mes "[Nightwing]";
+		mes "It is done. The witches' magic is unraveling and the nightmare is collapsing. Prontera will wake, even if it will never be what it was.";
+		next;
+		mes "[Nightwing]";
+		mes "You were never bait, you know. You were our only hope. I could not have lifted the curse alone.";
+		next;
+		mes "[Nightwing]";
+		mes "Take what the Queen hoarded from the chest. I will hold the way out open until you step through, so you leave as yourself.";
+		close2;
+
+		$@RN_Stage = 5;
+		hideonnpc "Nightwing#RN";
+		movenpc "Nightmare Chest#RN", 150, 184;
+		hideoffnpc "Nightmare Chest#RN";
+		end;
+	}
+
+	mes "[Nightwing]";
+	mes "Focus on the battle ahead! The Queen is watching.";
+	close;
+}
+
+// --- Engine: waves, kill events, live HUD, time limit, cleanup ---
+-	script	RN_Core_Engine	-1,{
+
+// Starts a horde round: 700 of each monster at once
+OnStartWave:
+	callsub L_Cfg;
+	if ($@RN_Phase == 1)
+		$@RN_Goal = 500;
+	else
+		$@RN_Goal = 666;
+
+	for (.@i = 0; .@i < 3; .@i++) {
+		$@RN_K[.@i] = 0;
+		areamonster "prt_q", 50, 50, 250, 250, .nm$[.@i], .id[.@i], .spawn, .ev$[.@i];
+	}
+	mapannounce "prt_q", "[Nightwing]: Horde " + $@RN_Phase + " - 2,100 Nightmarish Fiends have appeared! Slay " + $@RN_Goal + " of each kind!", bc_map, "0x00FF99";
+	end;
+
+OnGroteKill:
+	callsub L_Kill, 0;
+	end;
+
+OnPierrotKill:
+	callsub L_Kill, 1;
+	end;
+
+OnDisguiserKill:
+	callsub L_Kill, 2;
+	end;
+
+L_Kill:
+	.@t = getarg(0);
+	if (!$@RN_Active || $@RN_Stage != 1) return;
+
+	if ($@RN_K[.@t] < $@RN_Goal) $@RN_K[.@t]++;
+
+	if (playerattached())
+		dispbottom "[Royal Nightmare] Grote: " + $@RN_K[0] + "/" + $@RN_Goal + " | Pierrotzoist: " + $@RN_K[1] + "/" + $@RN_Goal + " | Disguiser: " + $@RN_K[2] + "/" + $@RN_Goal;
+
+	if ($@RN_K[0] >= $@RN_Goal && $@RN_K[1] >= $@RN_Goal && $@RN_K[2] >= $@RN_Goal) {
+		$@RN_Stage = 2;
+		killmonster "prt_q", "All";	// clear the leftovers of the 700 spawn
+		mapannounce "prt_q", "[Nightwing]: The horde has been purged! Speak to Nightwing at the center.", bc_map, "0xFFCC00";
+
+		movenpc "Nightwing#RN", 158, 184;
+		hideoffnpc "Nightwing#RN";
+	}
+	return;
+
+// Boss kills (Death Witches / Demi Freyja)
+OnQueenKill:
+	if (!$@RN_Active || $@RN_Stage != 3) end;
+
+	$@RN_BossKilled++;
+	if (playerattached())
+		dispbottom "[Royal Nightmare] Bosses Defeated: " + $@RN_BossKilled + "/" + $@RN_BossNeed;
+
+	if ($@RN_BossKilled >= $@RN_BossNeed) {
+		$@RN_Stage = 4;
+		$@RN_FreyjaGID = 0;
+		killmonster "prt_q", "All";	// clears any summoned adds
+		mapannounce "prt_q", "[Royal Nightmare]: The Nightmare Queen's forces have been vanquished! Talk to Nightwing.", bc_map, "0x00FF00";
+
+		movenpc "Nightwing#RN", 158, 184;
+		hideoffnpc "Nightwing#RN";
+	}
+	end;
+
+// 1-second loop: live HUD (time left + progress) and time limit check
+OnTimer1000:
+	if (!$@RN_Active) {
+		stopnpctimer;
+		end;
+	}
+
+	.@rem = $@RN_TimeLimit - gettimetick(2);
+
+	if (.@rem <= 0) {
+		stopnpctimer;
+		mapannounce "prt_q", "[Royal Nightmare]: Time limit expired! You are being teleported out.", bc_map, "0xFF0000";
+		sleep 2000;
+		mapwarp "prt_q", "prontera", 150, 150;
+		donpcevent "RN_Core_Engine::OnCleanup";
+		end;
+	}
+
+	// Grand finale: every 15s, 10 of each horde monster appear around the final MVP
+	if ($@RN_Stage == 3 && $@RN_Phase == 3 && gettimetick(2) >= $@RN_AddTime) {
+		.@alive = 1;
+		.@fx = 154;	// fallback position if the MVP's GID is unavailable
+		.@fy = 185;
+		if ($@RN_FreyjaGID) {
+			if (getunitdata($@RN_FreyjaGID, .@fd) != -1) {
+				.@fx = .@fd[UMOB_X];
+				.@fy = .@fd[UMOB_Y];
+			} else {
+				.@alive = 0;	// final MVP is dead, stop summoning
+				$@RN_FreyjaGID = 0;
+				$@RN_AddTime = gettimetick(2) + 999999;
+			}
+		}
+		if (.@alive) {
+			callsub L_Cfg;
+			for (.@j = 0; .@j < 3; .@j++)
+				areamonster "prt_q", .@fx - 6, .@fy - 6, .@fx + 6, .@fy + 6, .nm$[.@j], .id[.@j], 10;
+			mapannounce "prt_q", "[Royal Nightmare]: The Twisted God summons more Nightmarish Fiends!", bc_map, "0xFF6600";
+			$@RN_AddTime = gettimetick(2) + 15;
+		}
+	}
+
+	.@mins = .@rem / 60;
+	.@secs = .@rem % 60;
+	.@time$ = .@mins + ":" + (.@secs < 10 ? "0" : "") + .@secs;
+
+	if ($@RN_Stage == 0)
+		.@info$ = "Speak to Nightwing";
+	else if ($@RN_Stage == 1)
+		.@info$ = "Horde " + $@RN_Phase + " | G " + $@RN_K[0] + "/" + $@RN_Goal + " P " + $@RN_K[1] + "/" + $@RN_Goal + " D " + $@RN_K[2] + "/" + $@RN_Goal;
+	else if ($@RN_Stage == 2 || $@RN_Stage == 4)
+		.@info$ = "Speak to Nightwing";
+	else if ($@RN_Stage == 3)
+		.@info$ = "Bosses " + $@RN_BossKilled + "/" + $@RN_BossNeed;
+	else
+		.@info$ = "Claim your reward!";
+
+	if (attachrid($@RN_AID)) {
+		showscript "[Royal Nightmare] Time " + .@time$ + " | " + .@info$;
+		if (.@rem == 600 || .@rem == 300 || .@rem == 60)
+			dispbottom "[Royal Nightmare] " + (.@rem / 60) + " minute(s) remaining!";
+		detachrid;
+	}
+
+	setnpctimer 0;
+	end;
+
+OnCleanup:
+	stopnpctimer;
+	killmonster "prt_q", "All";
+
+	movenpc "Nightwing#RN", 158, 184;
+	hideoffnpc "Nightwing#RN";
+	hideonnpc "Nightmare Queen#RN";
+	hideonnpc "Nightmare Chest#RN";
+
+	$@RN_Active = 0;
+	$@RN_PlayerID = 0;
+	$@RN_AID = 0;
+	$@RN_Stage = 0;
+	$@RN_Phase = 0;
+	$@RN_Goal = 500;
+	$@RN_BossKilled = 0;
+	$@RN_BossNeed = 0;
+	$@RN_FreyjaGID = 0;
+	$@RN_AddTime = 0;
+	$@RN_TimeLimit = 0;
+	deletearray $@RN_K[0], 3;
+	end;
+
+// Config is loaded on every use, so nothing depends on OnInit having run
+L_Cfg:
+	setarray .id[0], 20941, 20942, 20936;
+	setarray .nm$[0], "Grote", "Pierrotzoist", "Disguiser";
+	setarray .ev$[0], "RN_Core_Engine::OnGroteKill", "RN_Core_Engine::OnPierrotKill", "RN_Core_Engine::OnDisguiserKill";
+	.spawn = 700;	// monsters spawned per type at the start of each horde
+	return;
+}
+
+// --- Separate NPC so a problem here can never stop the engine from loading ---
+-	script	RN_NpcCleaner	-1,{
+OnClear:
+	.@n = getunits(BL_NPC, .@gid, false, "prt_q");
+	for (.@i = 0; .@i < .@n; .@i++) {
+		.@nm$ = getunitname(.@gid[.@i]);
+		if (.@nm$ == "Nightwing" || .@nm$ == "Nightmare Queen" || .@nm$ == "Nightmare Chest")
+			continue;
+		unitexit .@gid[.@i];
+	}
+	end;
+}
+
+// --- Nightmare Queen NPC ---
+prt_q,154,184,4	script	Nightmare Queen#RN	10368,{
+	if (getcharid(0) != $@RN_PlayerID) end;
+	if ($@RN_Stage != 2) end;
+
+	mes "[Nightmare Queen]";
+	if ($@RN_Phase == 1) {
+		mes "So this is the guest my witches have been whispering about. You have walked through my banquet and cut down my guests like wheat.";
+		next;
+		mes "[Nightmare Queen]";
+		mes "The royal family are long dead. Prontera is mine now, and I decided that no one should ever leave the feast. The Death Witches' dark magic made certain of it.";
+		next;
+		mes "[Nightmare Queen]";
+		mes "Every citizen became a monster, and every monster became my loyal subject. Soon you will become one of them, and my court will be complete.";
+		next;
+		mes "[Nightmare Queen]";
+		mes "You foolish mortal... You think you can escape this realm intact?";
+		mes "I will finish you in your worst nightmare!";
+	} else if ($@RN_Phase == 2) {
+		mes "You dare to return?! My subjects were mine to command, and you slaughtered them for sport.";
+		next;
+		mes "[Nightmare Queen]";
+		mes "No matter. The Death Witches can always make more, and the crown of this nightmare is not so easily shattered. Even my loyal Nightwing will watch you fall.";
+		next;
+		mes "[Nightmare Queen]";
+		mes "Come, my witches! Five of you this time. Show our guest the true meaning of transformation!";
+	} else {
+		mes "ENOUGH!!! I will not be humiliated by a mere mortal in my own court!";
+		next;
+		mes "[Nightmare Queen]";
+		mes "I built this nightmare on the ruins of a kingdom. I will not let it end here, not by your hand and not by that traitor Nightwing's!";
+		next;
+		mes "[Nightmare Queen]";
+		mes "^FF0000I will pour out everything the witches' magic gave me. Come forth, Freyja! Crush this insect with me!^000000";
+	}
+	next;
+	close2;
+
+	hideonnpc "Nightmare Queen#RN";
+
+	$@RN_Stage = 3;
+	$@RN_BossKilled = 0;
+
+	if ($@RN_Phase == 1) {
+		$@RN_BossNeed = 3;
+		for (.@i = 0; .@i < 3; .@i++)
+			monster "prt_q", 150 + (.@i * 4), 185, "Death Witch", 20943, 1, "RN_Core_Engine::OnQueenKill";
+	} else if ($@RN_Phase == 2) {
+		$@RN_BossNeed = 5;
+		for (.@i = 0; .@i < 5; .@i++)
+			monster "prt_q", 146 + (.@i * 4), 185, "Death Witch", 20943, 1, "RN_Core_Engine::OnQueenKill";
+	} else {
+		$@RN_BossNeed = 3;
+		mapannounce "prt_q", "[Nightmare Queen]: Freyja, answer my call!", bc_map, "0xFF0000";
+		$@RN_FreyjaGID = monster("prt_q", 154, 185, "Demi Freyja", 21361, 1, "RN_Core_Engine::OnQueenKill");
+		$@RN_AddTime = gettimetick(2) + 15;
+		monster "prt_q", 150, 185, "Death Witch", 20943, 1, "RN_Core_Engine::OnQueenKill";
+		monster "prt_q", 158, 185, "Death Witch", 20943, 1, "RN_Core_Engine::OnQueenKill";
+	}
+	end;
+
+OnInit:
+	hideonnpc;
+	end;
+}
+
+// --- Reward Chest NPC ---
+prt_q,150,184,4	script	Nightmare Chest#RN	10412,{
+	if (getcharid(0) != $@RN_PlayerID) end;
+	if ($@RN_Stage != 5) end;
+
+	$@RN_Stage = 6;	// prevents double claim
+
+	mes "[Nightmare Chest]";
+	mes "The Queen's hoard sits where the royal throne once stood: tribute from a banquet that never ended, and the last spoils of a kingdom she devoured.";
+	next;
+	mes "[Nightmare Chest]";
+	mes "As you reach inside, you feel the curse lift from the walls. Somewhere beyond the dark, Prontera is waking up.";
+	next;
+	mes "[Nightmare Chest]";
+	mes "You retrieve your guaranteed rewards!";
+
+	getitem 102071, 5;
+	getitem 102074, 5;
+	getitem 1000274, 30;
+	getitem 102562, 3;	// Demi_Freyja_Antiquity
+	Zeny += 5000000;
+	getexp 100000000000, 60000000000;	// Base EXP, Job EXP
+
+	// 8 hour cooldown starts now (character bound)
+	RN_Cooldown = gettimetick(2) + 28800;
+
+	next;
+	mes "[Nightwing]";
+	mes "The way is open. Go, and do not look back. The nightmare will not hold you now, and neither will I.";
+	close2;
+
+	warp "prontera", 150, 150;
+	donpcevent "RN_Core_Engine::OnCleanup";
+	end;
+
+OnInit:
+	hideonnpc;
+	end;
+}
