@@ -20,10 +20,4 @@ Grand finale: The final MVP (ID 21361) and 2 Death Witches. Every 15 seconds, 10
 Reward chest: The player claims the rewards and is teleported back to Prontera.
 It takes approximately 20-30min to complete.
 
-📦 Rewards:
-5x item 102071
-5x item 102074
-30x item 1000274
-3x item 102562 (Demi Freyja Antiquity)
-5,000,000 Zeny
-100,000,000,000 Base EXP and 60,000,000,000 Job EXP
+📦 Rewards: 5x item 102071; 5x item 102074; 30x item 1000274; 3x item 102562 (Demi Freyja Antiquity);  5,000,000 Zeny; 100,000,000,000 Base EXP and 60,000,000,000 Job EXP.
