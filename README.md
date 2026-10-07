@@ -24,6 +24,6 @@ Nightwing's Betrayal: Nightwing reveals his plan to Leticia, and she slaps the p
 Horde 3, wave 2 (The Queen's Beasts): Two rows of R001 Bestia and Bone Detale lead back to the fountain. Kill 50 to clear Horde 3.
 Grand finale: Leticia transforms into the Goddess of Nightmare and summons the final MVP (ID 21361) with 2 Death Witches. Every 15 seconds, 35 monsters spawn around the player: 5 of each Horde 1 and Horde 2 monster, plus 1 Death Witch, 1 R001 Bestia, 1 Bone Detale, 1 Kades and 1 Mutated Tainted Flame Spirit.
 Reward chest: The player claims the rewards and is teleported back to Prontera.
-It takes approximately 20-30min to complete.
+It takes approximately 20-30min to complete (if well geared).
 
 📦 Rewards: 5x item 102071; 5x item 102074; 30x item 1000274; 3x item 102562 (Demi Freyja Antiquity); 5,000,000 Zeny; 100,000,000,000 Base EXP and 60,000,000,000 Job EXP.
