@@ -1,6 +1,6 @@
 🗡️ Royal Nightmare
 
-Royal Nightmare Custom Instance (iRO)
+Royal Nightmare Custom Instance (iRO):
 A solo, character-bound instance script for RO, set in a nightmare version of Prontera. The Nightmare Queen took the throne after the royal family fell and turned the royal banquet into a curse. Her Death Witches' dark magic turned the townspeople into monsters, and she plans to do the same to the player. Nightwing pretends to serve her while secretly helping the player break the curse... and plotting to dethrone her for good. But Leticia is hiding more than a crown: deep in the fallen court sleeps the power of a demi-goddess, and she won't go down without using it.
 
 🌟 Features:
