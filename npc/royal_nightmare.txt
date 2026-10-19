@@ -357,6 +357,7 @@ OnTimer1000:
 OnCleanup:
 	stopnpctimer;
 	killmonster "prt_q", "All";
+	donpcevent "RN_NpcCleaner::OnRestore";
 
 	movenpc "Nightwing#RN", 158, 184;
 	hideoffnpc "Nightwing#RN";
@@ -387,16 +388,30 @@ L_Cfg:
 }
 
 // --- Separate NPC so a problem here can never stop the engine from loading ---
+// Hides every other NPC on prt_q (the Sky Fortress entrance, the warp to
+// prt_lib_q) while a run is on, and OnRestore (from OnCleanup) brings them back.
 -	script	RN_NpcCleaner	-1,{
 OnClear:
-	.@n = getunits(BL_NPC, .@gid, false, "prt_q");
+	callsub L_Restore;	// nothing left hidden from an earlier run
+	.@n = getmapunits(BL_NPC, "prt_q", .@gid);
 	for (.@i = 0; .@i < .@n; .@i++) {
-		.@nm$ = getunitname(.@gid[.@i]);
-		if (.@nm$ == "Nightwing" || .@nm$ == "Nightmare Queen" || .@nm$ == "Nightmare Chest")
+		.@nm$ = rid2name(.@gid[.@i]);	// the unique name disablenpc needs
+		if (compare(.@nm$, "#RN"))	// the instance's own NPCs
 			continue;
-		unitexit .@gid[.@i];
+		disablenpc .@nm$;
+		.hidden$[getarraysize(.hidden$)] = .@nm$;
 	}
 	end;
+
+OnRestore:
+	callsub L_Restore;
+	end;
+
+L_Restore:
+	for (.@i = 0; .@i < getarraysize(.hidden$); .@i++)
+		enablenpc .hidden$[.@i];
+	deletearray .hidden$;
+	return;
 }
 
 // --- Nightmare Queen NPC ---
