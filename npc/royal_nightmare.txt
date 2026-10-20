@@ -644,7 +644,7 @@ OnGauntletWake:
 	if (!$@RN_GaunWake) end;
 	$@RN_GaunWake = 0;
 	for (.@i = 0; .@i < $@RN_GaunN; .@i++)
-		if (getunitdata($@RN_GaunGID[.@i], .@d) != -1)	// still alive
+		if (unitexists($@RN_GaunGID[.@i]))	// still alive
 			setunitdata $@RN_GaunGID[.@i], UMOB_MODE, $@RN_GaunMode[.@i];
 	mapannounce "prt_q", "[Royal Nightmare]: The Queen's beasts lunge!", bc_map, "0xFF0000";
 	end;
@@ -653,7 +653,10 @@ OnGauntletWake:
 // towards 155,112. Directions: 0 N, 1 NW, 2 W, 3 SW, 4 S, 5 SE, 6 E, 7 NE.
 L_Freeze:
 	.@g = getarg(0);
-	if (!.@g || getunitdata(.@g, .@d) == -1) return;
+	// getunitdata is a command (it returns nothing when it works), so ask
+	// unitexists whether the beast is there before reading its data
+	if (!.@g || !unitexists(.@g)) return;
+	getunitdata .@g, .@d;
 	$@RN_GaunGID[$@RN_GaunN] = .@g;
 	$@RN_GaunMode[$@RN_GaunN] = .@d[UMOB_MODE];
 	$@RN_GaunN++;
@@ -718,11 +721,12 @@ OnTimer1000:
 	if ($@RN_Stage == 3 && $@RN_Phase == 3 && gettimetick(2) >= $@RN_AddTime) {
 		.@alive = 1;
 		if ($@RN_FreyjaGID) {
-			if (getunitdata($@RN_FreyjaGID, .@fd) == -1) {
+			if (!unitexists($@RN_FreyjaGID)) {
 				.@alive = 0;	// final MVP is dead, stop summoning
 				$@RN_FreyjaGID = 0;
 				$@RN_AddTime = gettimetick(2) + 999999;
-			}
+			} else
+				getunitdata $@RN_FreyjaGID, .@fd;
 		}
 		// She only calls them when she sees someone: a run member within 14
 		// cells of her. Nobody near (e.g. out refilling after a death), or
