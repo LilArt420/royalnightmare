@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2
+- Fixed: Horde 3, wave 2 only spawned one of the Queen's beasts (an R001-Bestia), so the wave could never reach 50 kills and the run got stuck at "Beasts 1/50". All 70 beasts spawn again.
+- The grand finale checks whether the final MVP is still alive the same, reliable way.
+
 ## 1.4.1
 - Horde 3, wave 2: the Queen's beasts now spawn frozen, turned to face you, and a short introduction appears once the street has loaded. They come to life when you close it (or after 30 seconds), so nothing hits you while the map is still loading.
 - Fixed: on the current Ragnarok Offline server the script stopped loading partway through (a `getunits` call in a form this server doesn't accept, and `unitexit`, which it doesn't have). Everything after it was missing: the Nightmare Queen, the Kades, the reward chest. Runs could not be finished.
