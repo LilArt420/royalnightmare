@@ -2,7 +2,7 @@
 
 ## 1.4.2
 - Fixed: Horde 3, wave 2 only spawned one of the Queen's beasts (an R001-Bestia), so the wave could never reach 50 kills and the run got stuck at "Beasts 1/50". All 70 beasts spawn again.
-- The grand finale checks whether the final MVP is still alive the same, reliable way.
+- Fixed: in the grand finale, the Goddess never called her minion waves: the script never learned which monster was Demi Freyja, so it never saw anyone near her. The waves come again (only while someone in the run is within 14 cells of her, and never while 150+ monsters are out).
 
 ## 1.4.1
 - Horde 3, wave 2: the Queen's beasts now spawn frozen, turned to face you, and a short introduction appears once the street has loaded. They come to life when you close it (or after 30 seconds), so nothing hits you while the map is still loading.
