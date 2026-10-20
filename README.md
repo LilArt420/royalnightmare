@@ -22,7 +22,7 @@ Horde 2: 700 of each monster spawn, and the player must kill 666 of each (Gan Ce
 Queen, round 2: 5 Death Witch MVPs.
 Horde 3, wave 1 (The Kades Ambush): 10 Kades surround the player, joined by 15 Tainted Flame Spirits. Kill all of them to move on.
 Nightwing's Betrayal: Nightwing reveals his plan to Leticia, and she slaps the player across Prontera.
-Horde 3, wave 2 (The Queen's Beasts): Two rows of R001 Bestia and Bone Detale lead back to the fountain. Kill 50 to clear Horde 3.
+Horde 3, wave 2 (The Queen's Beasts): Two rows of R001 Bestia and Bone Detale lead back to the fountain, standing frozen and staring at you until you close the Queen's taunt, so nothing hits you while the street loads. Kill 50 to clear Horde 3.
 Grand finale: Leticia transforms into the Goddess of Nightmare and summons the final MVP (ID 21361) with 2 Death Witches. Every 15 seconds while someone is close to her, 35 monsters spawn around them: 5 of each Horde 1 and Horde 2 monster, plus 1 Death Witch, 1 R001 Bestia, 1 Bone Detale, 1 Kades and 1 Mutated Tainted Flame Spirit.
 Reward chest: The player claims the rewards and is teleported back to Prontera.
 It takes approximately 20-30min to complete (if well geared).
