@@ -71,6 +71,7 @@ jobs:
           mkdir -p "$dir"
           cp mod.json "$dir/"
           [ -f README.md ] && cp README.md "$dir/"
+          [ -f LICENSE ] && cp LICENSE "$dir/"
           for d in npc db data lua client conf System BGM images; do
             [ -d "$d" ] && cp -R "$d" "$dir/"
           done
