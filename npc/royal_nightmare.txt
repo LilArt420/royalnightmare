@@ -669,7 +669,7 @@ L_Freeze:
 	else if (.@dx > 0) .@dir = .@dy > 0 ? 7 : 5;
 	else .@dir = .@dy > 0 ? 1 : 3;
 	setunitdata .@g, UMOB_MODE, 0;
-	setunitdata .@g, UMOB_DIR, .@dir;
+	setunitdata .@g, UMOB_LOOKDIR, .@dir;
 	return;
 
 OnGauntletKill:

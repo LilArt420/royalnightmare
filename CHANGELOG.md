@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.3
+- Fixed: Horde 3, wave 2 still spawned only one of the Queen's beasts. The line that turns each beast to face you used a name this server doesn't have (`UMOB_DIR`; it is `UMOB_LOOKDIR`), and with no player attached that stopped the whole spawn after the first beast. All 70 spawn, frozen and facing the street, as intended.
+
 ## 1.4.2
 - Fixed: Horde 3, wave 2 only spawned one of the Queen's beasts (an R001-Bestia), so the wave could never reach 50 kills and the run got stuck at "Beasts 1/50". All 70 beasts spawn again.
 - Fixed: in the grand finale, the Goddess never called her minion waves: the script never learned which monster was Demi Freyja, so it never saw anyone near her. The waves come again (only while someone in the run is within 14 cells of her, and never while 150+ monsters are out).
