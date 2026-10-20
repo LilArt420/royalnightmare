@@ -1036,7 +1036,9 @@ prt_q,154,184,4	script	Nightmare Queen#RN	10368,{
 	} else {
 		$@RN_BossNeed = 3;
 		mapannounce "prt_q", "[Nightmare Queen]: Freyja, answer my call!", bc_map, "0xFF0000";
-		$@RN_FreyjaGID = monster("prt_q", 154, 185, "Demi Freyja", 21361, 1, "RN_Core_Engine::OnQueenKill");
+		// monster is a command (it returns nothing): the new boss's id is in $@mobid
+		monster "prt_q", 154, 185, "Demi Freyja", 21361, 1, "RN_Core_Engine::OnQueenKill";
+		$@RN_FreyjaGID = $@mobid[0];
 		$@RN_AddTime = gettimetick(2) + 15;
 		monster "prt_q", 150, 185, "Death Witch", 20943, 1, "RN_Core_Engine::OnQueenKill";
 		monster "prt_q", 158, 185, "Death Witch", 20943, 1, "RN_Core_Engine::OnQueenKill";
