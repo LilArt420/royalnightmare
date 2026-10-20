@@ -388,6 +388,8 @@ prt_q,158,184,4	script	Nightwing#RN	10297,{
 		$@RN_Stage = 9;
 		warp "prt_q", 155, 112;
 		donpcevent "RN_Core_Engine::OnStartGauntlet";
+		// once the street has loaded: the beasts' introduction (RN_Gauntlet)
+		addtimer 2500, "RN_Gauntlet::OnIntro";
 		end;
 	}
 
@@ -610,20 +612,62 @@ L_Horde3Wave1:
 
 // Horde 3, wave 2 (after the slap): two rows of 25 leading from 155,112 back to the
 // central fountain, plus 20 spares scattered on the map (70 total). Horde 3 is over at 50 kills.
+// Every beast spawns frozen (mode 0: it can neither move nor attack) and
+// turned towards where the player lands, 155,112. They wake (OnGauntletWake)
+// when the player closes the introduction (RN_Gauntlet::OnIntro), or after
+// 30 seconds whatever happens (OnTimer1000).
 OnStartGauntlet:
 	$@RN_GauntK = 0;
+	$@RN_GaunN = 0;
+	$@RN_GaunWake = gettimetick(2) + 30;
+	deletearray $@RN_GaunGID[0], 128;
+	deletearray $@RN_GaunMode[0], 128;
 	for (.@i = 0; .@i < 25; .@i++) {
 		.@y = 116 + (.@i * 5) / 2;	// y 116 .. 176
 		callsub L_SpawnAt, 151, .@y, "--ja--", 20934, "RN_Core_Engine::OnGauntletKill";	// R001_BESTIA
+		callsub L_Freeze, $@mobid[0];
 		callsub L_SpawnAt, 159, .@y, "--ja--", 20618, "RN_Core_Engine::OnGauntletKill";	// BONE_DETALE
+		callsub L_Freeze, $@mobid[0];
 	}
 	// +20 spares (10 of each) scattered over the same area the hordes use. Any 50 kills
 	// finish the wave, so a player who died and came back can still find enough of them
 	// if the rows have wandered off. The leftovers are cleared when the 50th one dies.
 	areamonster "prt_q", 50, 50, 250, 250, "--ja--", 20934, 10, "RN_Core_Engine::OnGauntletKill";
+	for (.@i = 0; .@i < 10; .@i++) callsub L_Freeze, $@mobid[.@i];
 	areamonster "prt_q", 50, 50, 250, 250, "--ja--", 20618, 10, "RN_Core_Engine::OnGauntletKill";
-	mapannounce "prt_q", "[Nightmare Queen]: Crawl back to my fountain, dreamer, if my beasts leave anything of you!", bc_map, "0xFF0000";
+	for (.@i = 0; .@i < 10; .@i++) callsub L_Freeze, $@mobid[.@i];
+	mapannounce "prt_q", "[Royal Nightmare]: The Queen's beasts line the road back to the fountain...", bc_map, "0xFF0000";
 	end;
+
+// The beasts come to life: every one gets its own mode back
+OnGauntletWake:
+	if (!$@RN_GaunWake) end;
+	$@RN_GaunWake = 0;
+	for (.@i = 0; .@i < $@RN_GaunN; .@i++)
+		if (getunitdata($@RN_GaunGID[.@i], .@d) != -1)	// still alive
+			setunitdata $@RN_GaunGID[.@i], UMOB_MODE, $@RN_GaunMode[.@i];
+	mapannounce "prt_q", "[Royal Nightmare]: The Queen's beasts lunge!", bc_map, "0xFF0000";
+	end;
+
+// Freezes beast <gid> (its mode saved for OnGauntletWake) and turns it
+// towards 155,112. Directions: 0 N, 1 NW, 2 W, 3 SW, 4 S, 5 SE, 6 E, 7 NE.
+L_Freeze:
+	.@g = getarg(0);
+	if (!.@g || getunitdata(.@g, .@d) == -1) return;
+	$@RN_GaunGID[$@RN_GaunN] = .@g;
+	$@RN_GaunMode[$@RN_GaunN] = .@d[UMOB_MODE];
+	$@RN_GaunN++;
+	.@dx = 155 - .@d[UMOB_X];
+	.@dy = 112 - .@d[UMOB_Y];
+	.@ax = .@dx < 0 ? -.@dx : .@dx;
+	.@ay = .@dy < 0 ? -.@dy : .@dy;
+	if (.@ax * 2 < .@ay) .@dir = .@dy > 0 ? 0 : 4;
+	else if (.@ay * 2 < .@ax) .@dir = .@dx > 0 ? 6 : 2;
+	else if (.@dx > 0) .@dir = .@dy > 0 ? 7 : 5;
+	else .@dir = .@dy > 0 ? 1 : 3;
+	setunitdata .@g, UMOB_MODE, 0;
+	setunitdata .@g, UMOB_DIR, .@dir;
+	return;
 
 OnGauntletKill:
 	if (!$@RN_Active || $@RN_Stage != 9) end;
@@ -714,6 +758,10 @@ OnTimer1000:
 			$@RN_AddTime = gettimetick(2) + 15;
 		}
 	}
+
+	// the beasts wake on their own if nobody closed the introduction in 30s
+	if ($@RN_GaunWake && gettimetick(2) >= $@RN_GaunWake)
+		donpcevent "RN_Core_Engine::OnGauntletWake";
 
 	.@mins = .@rem / 60;
 	.@secs = .@rem % 60;
@@ -821,6 +869,10 @@ OnCleanup:
 	$@RN_FlameK = 0;
 	$@RN_FlameNeed = 0;
 	$@RN_GauntK = 0;
+	$@RN_GaunWake = 0;
+	$@RN_GaunN = 0;
+	deletearray $@RN_GaunGID[0], 128;
+	deletearray $@RN_GaunMode[0], 128;
 	deletearray $@RN_K[0], 3;
 	end;
 
@@ -886,6 +938,26 @@ L_Restore:
 		enablenpc .hidden$[.@i];
 	deletearray .hidden$;
 	return;
+}
+
+// --- Horde 3, wave 2: the beasts' introduction -----------------------------
+// Started with addtimer on the player who was slapped down the street, so it
+// runs once their map has loaded. Closing it wakes the beasts.
+-	script	RN_Gauntlet	-1,{
+OnIntro:
+	if (!$@RN_Active || $@RN_Stage != 9 || !$@RN_GaunWake) end;
+	mes "^8B008BYou land hard on the cobblestones of a ruined street.^000000";
+	mes "^8B008BAll along the road back to the fountain, the Queen's beasts stand in two silent rows... and every one of them turns its head towards you.^000000";
+	next;
+	callfunc "RN_Portrait", 2;
+	mes "[Nightmare Queen]";
+	mes "^FF0000Crawl back to my fountain, dreamer, if my beasts leave anything of you!^000000";
+	next;
+	mes "^8B008BFifty of them must fall before you can reach her.^000000";
+	callfunc "RN_Portrait", 0;
+	close2;
+	donpcevent "RN_Core_Engine::OnGauntletWake";
+	end;
 }
 
 // --- Nightmare Queen NPC ---
