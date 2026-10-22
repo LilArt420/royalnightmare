@@ -11,6 +11,16 @@
 //   every member on prt_q gets the chest's rewards (and their own cooldown).
 // - Finale: the Goddess only calls her minions when someone in the run is
 //   close to her, and never while 150+ monsters are already out.
+// - 1.5.0, the banquet fights back:
+//   Court Champions (2 of each horde monster, gold-crowned, 8x the HP; each
+//   counts for 10 and Nightwing blesses the party), the Witch's Hex (every 25s
+//   during the hordes and the finale the ground under each fighter is marked
+//   and erupts 3s later: step out), the Royal Guests (5 nobles still human,
+//   hiding in the streets during Hordes 1 and 2: Nightwing points the way;
+//   each one saved blesses the party and adds to the hoard), the Dream Shards
+//   (at 66% and 33% the Goddess shields herself until her 4 shards are
+//   shattered), and a grade for every escape (time and falls: S, A, B, C),
+//   with the fastest one on Nightwing's Hall of Dreamers.
 // ====================================================================
 
 // Map Flags
@@ -142,7 +152,8 @@ function	script	RN_IsOwner	{
 	return 0;
 }
 
-// The Queen's hoard for the attached character, and their 8 hour cooldown
+// The Queen's hoard for the attached character, and their 8 hour cooldown.
+// On top of it: the escape's grade ($@RN_Grade$) and the guests saved.
 function	script	RN_GiveRewards	{
 	getitem 102071, 5;
 	getitem 102074, 5;
@@ -150,7 +161,64 @@ function	script	RN_GiveRewards	{
 	getitem 102562, 3;	// Demi_Freyja_Antiquity
 	Zeny += 5000000;
 	getexp 100000000000, 60000000000;	// Base EXP, Job EXP
+	// the grade: S 2 more Antiquities, A 1, B 10 more coupons
+	if ($@RN_Grade$ == "S") getitem 102562, 2;
+	else if ($@RN_Grade$ == "A") getitem 102562, 1;
+	else if ($@RN_Grade$ == "B") getitem 1000274, 10;
+	// every guest saved: 6 more coupons; all five: one more Antiquity
+	if ($@RN_Saved > 0) getitem 1000274, $@RN_Saved * 6;
+	if ($@RN_Saved >= 5) getitem 102562, 1;
+	// a personal best
+	.@t = gettimetick(2) - $@RN_RunID;
+	if (!RN_Best || .@t < RN_Best) RN_Best = .@t;
 	RN_Cooldown = gettimetick(2) + 28800;	// 8 hour cooldown starts now (character bound)
+	return;
+}
+
+// mm:ss for <seconds>
+function	script	RN_Clock	{
+	.@t = getarg(0);
+	return (.@t / 60) + ":" + ((.@t % 60) < 10 ? "0" : "") + (.@t % 60);
+}
+
+// A navigation link to a spot on prt_q: callfunc("RN_Navi", "<text>", x, y).
+// Clicking it opens the navigation; the coordinates are never shown.
+function	script	RN_Navi	{
+	return "<NAVI>" + getarg(0) + "<INFO>prt_q," + getarg(1) + "," + getarg(2) + ",0,000,0</INFO></NAVI>";
+}
+
+// The Royal Guests: nobles the witches haven't turned yet, hiding in the
+// streets. <1..5>: their names, and what they say when they're found.
+function	script	RN_GuestName	{
+	setarray .@n$[1], "Lady Marianne", "Minister Aldric", "Lisette the Maid", "Sir Gerard", "Bertrand the Cook";
+	return .@n$[getarg(0)];
+}
+
+// A guest is found: any member of the run can lead them out.
+//   callfunc "RN_Guest", <1..5>;   (from the guest's own NPC)
+function	script	RN_Guest	{
+	.@g = getarg(0);
+	if (!$@RN_Active || !callfunc("RN_InRun") || !($@RN_GuestOut & (1 << .@g))) return;
+	setarray .@line$[1],
+		"Thank the gods, a living face! I hid under the banquet table when the wine turned black... I haven't dared to breathe since.",
+		"The Queen poured the first glass for me, you know. I pretended to drink it. That lie has kept me human for a hundred nights.",
+		"I was only clearing the plates! Then everyone at the table started... changing. Please, don't let them find me!",
+		"My sword broke on the first of them. An old knight, hiding in an alley like a rat. Well... a living rat.",
+		"I cooked for that feast. Every dish. I've been praying the curse wasn't in my food... Get me out of here, and I'll never cook for a queen again!";
+	.@who$ = callfunc("RN_GuestName", .@g);
+	mes "[" + .@who$ + "]";
+	mes .@line$[.@g];
+	next;
+	mes "[" + .@who$ + "]";
+	mes "Nightwing's people are holding the old gate? Then I'll run for it. Thank you... the whole city will hear who saved me.";
+	close2;
+	if (!($@RN_GuestOut & (1 << .@g))) return;	// someone else got there first
+	$@RN_GuestOut = $@RN_GuestOut & ~(1 << .@g);
+	$@RN_Saved++;
+	$@RN_Bless = 1;	// the loop blesses the party
+	specialeffect EF_ANGEL, AREA, strnpcinfo(0);
+	hideonnpc strnpcinfo(0);
+	mapannounce "prt_q", "[Nightwing]: " + .@who$ + " is safe! Royal Guests rescued: " + $@RN_Saved + "/5. My blessing on all of you!", bc_map, "0xFFCC00";
 	return;
 }
 
@@ -217,6 +285,11 @@ prontera,107,190,4	script	Nightwing	10297,{
 		close;
 	}
 
+	// the Hall of Dreamers: the fastest escape, and yours
+	if ($RN_BestTime) {
+		mes "^0000FFHall of Dreamers^000000: the fastest escape took ^0000FF" + callfunc("RN_Clock", $RN_BestTime) + "^000000 (grade " + $RN_BestGrade$ + "), by ^0000FF" + $RN_BestBy$ + "^000000.";
+		if (RN_Best) mes "Your own best: ^0000FF" + callfunc("RN_Clock", RN_Best) + "^000000.";
+	}
 	next;
 	mes "[Nightwing]";
 	mes "On the night of the royal banquet, the crown of Rune-Midgarts fell without a single sword being drawn. The nobles raised their glasses... and by dawn, not one of them was left to lower it.";
@@ -270,6 +343,13 @@ prontera,107,190,4	script	Nightwing	10297,{
 	$@RN_BossKilled = 0;
 	$@RN_BossNeed = 0;
 	$@RN_TimeLimit = gettimetick(2) + 3600;
+	$@RN_Deaths = 0;
+	$@RN_Saved = 0;
+	$@RN_Lost = 0;
+	$@RN_GuestOut = 0;
+	$@RN_GuestSeen = 0;
+	$@RN_Grade$ = "";
+	$@RN_HexAt = gettimetick(2) + 25;
 
 	// Remove every non-instance NPC from the map, then put every instance NPC
 	// back the way a run starts. A run that ended without OnCleanup (logout,
@@ -306,6 +386,9 @@ prt_q,158,184,4	script	Nightwing#RN	10297,{
 		next;
 		mes "[Nightwing]";
 		mes "Cut down 500 of each kind to thin her hordes, and the Queen will be forced to show herself. Then I can help you finish this and lead you out safely.";
+		next;
+		mes "[Nightwing]";
+		mes "Three more things. Her ^FFCC00Royal Champions^000000 wear gold: each one is worth ten of the others. When a Death Witch ^FF0000hexes the ground^000000 under you, move. And if you see anyone still human out there... ^0000FFsave them^000000.";
 		next;
 		mes "[Nightwing]";
 		mes "^FF0000Survive the onslaught, if you can!^000000";
@@ -456,8 +539,42 @@ OnStartWave:
 		$@RN_K[.@i] = 0;
 		areamonster "prt_q", 50, 50, 250, 250, .nm$[.@i], .id[.@i], .spawn, .ev$[.@i];
 	}
+	// the Court Champions: 2 of each kind, gold-crowned, large, 8x the HP;
+	// each counts for 10 kills and blesses the party
+	for (.@i = 0; .@i < 3; .@i++) {
+		for (.@c = 0; .@c < 2; .@c++) {
+			areamonster "prt_q", 50, 50, 250, 250, "Royal Champion " + .nm$[.@i], .id[.@i], 1, "RN_Core_Engine::OnChampKill" + .@i, Size_Large;
+			.@g = $@mobid[0];
+			if (!.@g || !unitexists(.@g)) continue;
+			.@hp = getmonsterinfo(.id[.@i], MOB_MAXHP) * 8;
+			setunitdata .@g, UMOB_MAXHP, .@hp;
+			setunitdata .@g, UMOB_HP, .@hp;
+			hateffect HAT_EF_SUBJECT_AURA_GOLD, true, .@g;
+		}
+	}
 	mapannounce "prt_q", "[Nightwing]: Horde " + $@RN_Phase + " - 2,100 Nightmarish Fiends have appeared! Slay " + $@RN_Goal + " each of " + .nm$[0] + ", " + .nm$[1] + " and " + .nm$[2] + "!", bc_map, "0x00FF99";
+	mapannounce "prt_q", "[Nightwing]: Six Royal Champions lead them. Each one is worth ten!", bc_map, "0xFFCC00";
 	end;
+
+// A Court Champion of slot 0/1/2: 10 kills, and Nightwing's blessing
+OnChampKill0:
+	callsub L_Kill, 0, 10;
+	callsub L_ChampDown;
+	end;
+OnChampKill1:
+	callsub L_Kill, 1, 10;
+	callsub L_ChampDown;
+	end;
+OnChampKill2:
+	callsub L_Kill, 2, 10;
+	callsub L_ChampDown;
+	end;
+
+L_ChampDown:
+	if (!$@RN_Active) return;
+	$@RN_Bless = 1;	// the loop blesses the party (never attach in a kill script)
+	mapannounce "prt_q", "[Nightwing]: A Royal Champion has fallen! My blessing on all of you!", bc_map, "0xFFCC00";
+	return;
 
 // Kill slot 0/1/2 of the current horde (see L_Cfg)
 OnHordeKill0:
@@ -476,7 +593,8 @@ L_Kill:
 	.@t = getarg(0);
 	if (!$@RN_Active || $@RN_Stage != 1) return;
 
-	if ($@RN_K[.@t] < $@RN_Goal) $@RN_K[.@t]++;
+	$@RN_K[.@t] += getarg(1, 1);	// a Champion counts for 10
+	if ($@RN_K[.@t] > $@RN_Goal) $@RN_K[.@t] = $@RN_Goal;
 
 	callsub L_Cfg;
 	if (playerattached())
@@ -536,6 +654,125 @@ OnQueenKill:
 		}
 	}
 	end;
+
+// A Dream Shard shattered: the last one breaks the Goddess's shield
+OnShardKill:
+	if (!$@RN_Active || !$@RN_Shielded) end;
+	$@RN_ShardLeft--;
+	if ($@RN_ShardLeft > 0) {
+		mapannounce "prt_q", "[Nightwing]: A Dream Shard shatters! " + $@RN_ShardLeft + " left!", bc_map, "0x00FF99";
+		end;
+	}
+	callsub L_Unshield;
+	end;
+
+// The Goddess draws a shield from her dreaming court (66% and 33% of her HP):
+// immune until the 4 Dream Shards around the fountain are shattered. They
+// take one point per hit, whatever hits them.
+L_Shards:
+	$@RN_ShardPhase++;
+	$@RN_Shielded = 1;
+	$@RN_ShardLeft = 0;
+	setunitdata $@RN_FreyjaGID, UMOB_DMGIMMUNE, 1;
+	setarray .@sx[0], 141, 167, 141, 167;
+	setarray .@sy[0], 172, 172, 197, 197;
+	for (.@i = 0; .@i < 4; .@i++) {
+		callsub L_SpawnAt, .@sx[.@i], .@sy[.@i], "Dream Shard", 1951, "RN_Core_Engine::OnShardKill";
+		.@g = $@mobid[0];
+		if (!.@g || !unitexists(.@g)) continue;
+		setunitdata .@g, UMOB_MAXHP, 60;
+		setunitdata .@g, UMOB_HP, 60;
+		$@RN_ShardLeft++;
+	}
+	if (!$@RN_ShardLeft) {	// nowhere to put them: no shield
+		callsub L_Unshield;
+		return;
+	}
+	mapannounce "prt_q", "[Goddess of Nightmare]: You cannot wound a dream!", bc_map, "0xFF00FF";
+	mapannounce "prt_q", "[Nightwing]: She's shielded! Shatter the 4 Dream Shards around the fountain!", bc_map, "0x00FF99";
+	return;
+
+L_Unshield:
+	$@RN_Shielded = 0;
+	if ($@RN_FreyjaGID && unitexists($@RN_FreyjaGID)) setunitdata $@RN_FreyjaGID, UMOB_DMGIMMUNE, 0;
+	mapannounce "prt_q", "[Nightwing]: Her shield is broken! Strike now!", bc_map, "0x00FF99";
+	return;
+
+// The Witch's Hex: the ground under every fighter is marked...
+L_HexMark:
+	$@RN_HexAt = gettimetick(2) + 25;
+	$@RN_HexBoom = gettimetick(2) + 3;
+	$@RN_HexN = 0;
+	.@n = callfunc("RN_Members");
+	copyarray .@aid[0], $@RN_MA[0], .@n;
+	for (.@i = 0; .@i < .@n && $@RN_HexN < 12; .@i++) {
+		if (!attachrid(.@aid[.@i])) continue;
+		getmapxy(.@pm$, .@px, .@py, BL_PC);
+		if (.@pm$ == "prt_q" && Hp > 0) {
+			$@RN_HexX[$@RN_HexN] = .@px;
+			$@RN_HexY[$@RN_HexN] = .@py;
+			movenpc "Witch's Hex#RN" + $@RN_HexN, .@px, .@py;
+			hideoffnpc "Witch's Hex#RN" + $@RN_HexN;
+			specialeffect EF_BEGINSPELL7, AREA, "Witch's Hex#RN" + $@RN_HexN;
+			dispbottom "[Royal Nightmare] A Death Witch hexes the ground beneath your feet! MOVE!", 0xFF4444;
+			$@RN_HexN++;
+		}
+		detachrid;
+	}
+	return;
+
+// ...and 3 seconds later it erupts: whoever is still within 2 cells loses
+// 30% of their HP (it can't kill)
+L_HexBoom:
+	$@RN_HexBoom = 0;
+	$@RN_HexHide = gettimetick(2) + 2;
+	for (.@h = 0; .@h < $@RN_HexN; .@h++)
+		specialeffect EF_SUI_EXPLOSION, AREA, "Witch's Hex#RN" + .@h;
+	.@n = callfunc("RN_Members");
+	copyarray .@aid[0], $@RN_MA[0], .@n;
+	for (.@i = 0; .@i < .@n; .@i++) {
+		if (!attachrid(.@aid[.@i])) continue;
+		getmapxy(.@pm$, .@px, .@py, BL_PC);
+		.@hit = 0;
+		for (.@h = 0; .@h < $@RN_HexN; .@h++)
+			if (.@pm$ == "prt_q" && distance(.@px, .@py, $@RN_HexX[.@h], $@RN_HexY[.@h]) <= 2) .@hit = 1;
+		if (.@hit && Hp > 0) {
+			percentheal -30, 0;
+			dispbottom "[Royal Nightmare] The hex erupts under you!", 0xFF4444;
+		}
+		detachrid;
+	}
+	return;
+
+// A Royal Guest appears somewhere in the streets, away from the fountain
+// (and the sealed courtyard). Nightwing points the way (the loop).
+L_GuestAppear:
+	.@g = getarg(0);
+	$@RN_GuestSeen = $@RN_GuestSeen | (1 << .@g);
+	for (.@try = 0; .@try < 50; .@try++) {
+		getfreecell("prt_q", .@x, .@y, 150, 150, 95, 95);
+		if (distance(.@x, .@y, 154, 184) >= 30 && !(.@x >= 140 && .@x <= 170 && .@y >= 305)) break;
+	}
+	if (.@try >= 50) return;	// no place found: this guest never shows
+	$@RN_GuestOut = $@RN_GuestOut | (1 << .@g);
+	$@RN_GuestT[.@g] = gettimetick(2);
+	movenpc callfunc("RN_GuestName", .@g) + "#RNG" + .@g, .@x, .@y;
+	hideoffnpc callfunc("RN_GuestName", .@g) + "#RNG" + .@g;
+	$@RN_GuestNow = .@g;
+	$@RN_GuestX = .@x;
+	$@RN_GuestY = .@y;
+	$@RN_GuestPoint = 1;
+	mapannounce "prt_q", "[Nightwing]: Someone out there is still human! Find " + callfunc("RN_GuestName", .@g) + " before the horde does!", bc_map, "0xFFCC00";
+	return;
+
+// A guest left alone too long: the horde finds them
+L_GuestLost:
+	.@g = getarg(0);
+	$@RN_GuestOut = $@RN_GuestOut & ~(1 << .@g);
+	$@RN_Lost++;
+	hideonnpc callfunc("RN_GuestName", .@g) + "#RNG" + .@g;
+	mapannounce "prt_q", "[Nightwing]: Too late... the horde found " + callfunc("RN_GuestName", .@g) + ".", bc_map, "0xFF4444";
+	return;
 
 // Horde 3: 10 Kades surround the player, shout, then attack
 L_KadesAmbush:
@@ -767,6 +1004,69 @@ OnTimer1000:
 	if ($@RN_GaunWake && gettimetick(2) >= $@RN_GaunWake)
 		donpcevent "RN_Core_Engine::OnGauntletWake";
 
+	// Nightwing's blessing on the party (a Champion fell, or a guest was saved)
+	if ($@RN_Bless) {
+		$@RN_Bless = 0;
+		.@n = callfunc("RN_Members");
+		copyarray .@aid[0], $@RN_MA[0], .@n;
+		for (.@i = 0; .@i < .@n; .@i++) {
+			if (!attachrid(.@aid[.@i])) continue;
+			if (Hp > 0) {
+				sc_start SC_BLESSING, 120000, 10;
+				sc_start SC_INCREASEAGI, 120000, 10;
+				specialeffect2 EF_BLESSING;
+			}
+			detachrid;
+		}
+	}
+
+	// the Witch's Hex: marks every 25s during the hordes and the finale, and
+	// erupts 3s after
+	if ($@RN_HexHide && gettimetick(2) >= $@RN_HexHide) {
+		$@RN_HexHide = 0;
+		for (.@h = 0; .@h < 12; .@h++) hideonnpc "Witch's Hex#RN" + .@h;
+	}
+	.@hexOn = ($@RN_Stage == 1 || ($@RN_Stage == 3 && $@RN_Phase == 3));
+	if ($@RN_HexBoom && gettimetick(2) >= $@RN_HexBoom) callsub L_HexBoom;
+	else if (.@hexOn && gettimetick(2) >= $@RN_HexAt) callsub L_HexMark;
+	else if (!.@hexOn && gettimetick(2) >= $@RN_HexAt) $@RN_HexAt = gettimetick(2) + 10;	// the first mark comes 10s into the next fight
+
+	// the Royal Guests: 2 show up during Horde 1 (at 25% and 60%), 3 during
+	// Horde 2 (20%, 50%, 80%); one left alone 3 minutes is lost
+	if ($@RN_Stage == 1) {
+		.@pct = ($@RN_K[0] + $@RN_K[1] + $@RN_K[2]) * 100 / ($@RN_Goal * 3);
+		if ($@RN_Phase == 1) {
+			if (.@pct >= 25 && !($@RN_GuestSeen & (1 << 1))) callsub L_GuestAppear, 1;
+			if (.@pct >= 60 && !($@RN_GuestSeen & (1 << 2))) callsub L_GuestAppear, 2;
+		} else if ($@RN_Phase == 2) {
+			if (.@pct >= 20 && !($@RN_GuestSeen & (1 << 3))) callsub L_GuestAppear, 3;
+			if (.@pct >= 50 && !($@RN_GuestSeen & (1 << 4))) callsub L_GuestAppear, 4;
+			if (.@pct >= 80 && !($@RN_GuestSeen & (1 << 5))) callsub L_GuestAppear, 5;
+		}
+	}
+	for (.@g = 1; .@g <= 5; .@g++)
+		if (($@RN_GuestOut & (1 << .@g)) && gettimetick(2) >= $@RN_GuestT[.@g] + 180) callsub L_GuestLost, .@g;
+	// Nightwing points the way to the newest guest, for everyone in the run
+	if ($@RN_GuestPoint) {
+		$@RN_GuestPoint = 0;
+		.@n = callfunc("RN_Members");
+		copyarray .@aid[0], $@RN_MA[0], .@n;
+		for (.@i = 0; .@i < .@n; .@i++) {
+			if (!attachrid(.@aid[.@i])) continue;
+			addtimer 500, "RN_Point::OnGuest";
+			detachrid;
+		}
+	}
+
+	// the Dream Shards: at 66% and 33% of her HP the Goddess shields herself
+	if ($@RN_Stage == 3 && $@RN_Phase == 3 && !$@RN_Shielded && $@RN_ShardPhase < 2 && $@RN_FreyjaGID && unitexists($@RN_FreyjaGID)) {
+		getunitdata $@RN_FreyjaGID, .@sd;
+		if (.@sd[UMOB_MAXHP] > 0) {
+			.@pct = .@sd[UMOB_HP] * 100 / .@sd[UMOB_MAXHP];
+			if (($@RN_ShardPhase == 0 && .@pct <= 66) || ($@RN_ShardPhase == 1 && .@pct <= 33)) callsub L_Shards;
+		}
+	}
+
 	.@mins = .@rem / 60;
 	.@secs = .@rem % 60;
 	.@time$ = .@mins + ":" + (.@secs < 10 ? "0" : "") + .@secs;
@@ -785,10 +1085,13 @@ OnTimer1000:
 		.@info$ = "Horde 3 | Kades " + $@RN_KadesK + "/10 Flames " + $@RN_FlameK + "/" + $@RN_FlameNeed;
 	else if ($@RN_Stage == 9)
 		.@info$ = "Horde 3 | Beasts " + $@RN_GauntK + "/50";
+	else if ($@RN_Stage == 3 && $@RN_Shielded)
+		.@info$ = "Shatter the Dream Shards " + (4 - $@RN_ShardLeft) + "/4";
 	else if ($@RN_Stage == 3)
 		.@info$ = "Bosses " + $@RN_BossKilled + "/" + $@RN_BossNeed;
 	else
 		.@info$ = "Claim your reward!";
+	if ($@RN_Stage >= 1) .@info$ += " | Guests " + $@RN_Saved + "/5";
 
 	.@n = callfunc("RN_Members");
 	copyarray .@aid[0], $@RN_MA[0], .@n;
@@ -841,7 +1144,16 @@ OnReset:
 	hideonnpc "Nightmare Chest#RN";
 	for (.@i = 0; .@i < 10; .@i++)
 		hideonnpc "Kades#RN" + .@i;
+	callsub L_HideExtras;
 	end;
+
+// The guests and the hexes, hidden
+L_HideExtras:
+	for (.@g = 1; .@g <= 5; .@g++)
+		hideonnpc callfunc("RN_GuestName", .@g) + "#RNG" + .@g;
+	for (.@h = 0; .@h < 12; .@h++)
+		hideonnpc "Witch's Hex#RN" + .@h;
+	return;
 
 OnCleanup:
 	stopnpctimer;
@@ -854,6 +1166,7 @@ OnCleanup:
 	hideonnpc "Nightmare Chest#RN";
 	for (.@i = 0; .@i < 10; .@i++)
 		hideonnpc "Kades#RN" + .@i;
+	callsub L_HideExtras;
 
 	$@RN_Active = 0;
 	$@RN_PlayerID = 0;
@@ -878,6 +1191,22 @@ OnCleanup:
 	deletearray $@RN_GaunGID[0], 128;
 	deletearray $@RN_GaunMode[0], 128;
 	deletearray $@RN_K[0], 3;
+	$@RN_Deaths = 0;
+	$@RN_Bless = 0;
+	$@RN_HexAt = 0;
+	$@RN_HexBoom = 0;
+	$@RN_HexHide = 0;
+	$@RN_HexN = 0;
+	$@RN_Saved = 0;
+	$@RN_Lost = 0;
+	$@RN_GuestOut = 0;
+	$@RN_GuestSeen = 0;
+	$@RN_GuestPoint = 0;
+	$@RN_GuestNow = 0;
+	$@RN_Shielded = 0;
+	$@RN_ShardPhase = 0;
+	$@RN_ShardLeft = 0;
+	$@RN_Grade$ = "";
 	end;
 
 // Config is loaded on every use, so nothing depends on OnInit having run.
@@ -1063,6 +1392,47 @@ prt_q,1,1,4	script	Kades#RN7	2255,{ end; OnInit: hideonnpc; end; }
 prt_q,1,1,4	script	Kades#RN8	2255,{ end; OnInit: hideonnpc; end; }
 prt_q,1,1,4	script	Kades#RN9	2255,{ end; OnInit: hideonnpc; end; }
 
+// --- The Royal Guests: nobles still human, hiding in the streets ---
+// They show up during Hordes 1 and 2 (RN_Core_Engine::L_GuestAppear).
+prt_q,1,1,4	script	Lady Marianne#RNG1	72,{ callfunc "RN_Guest", 1; end; OnInit: hideonnpc; end; }
+prt_q,1,1,4	script	Minister Aldric#RNG2	110,{ callfunc "RN_Guest", 2; end; OnInit: hideonnpc; end; }
+prt_q,1,1,4	script	Lisette the Maid#RNG3	94,{ callfunc "RN_Guest", 3; end; OnInit: hideonnpc; end; }
+prt_q,1,1,4	script	Sir Gerard#RNG4	404,{ callfunc "RN_Guest", 4; end; OnInit: hideonnpc; end; }
+prt_q,1,1,4	script	Bertrand the Cook#RNG5	53,{ callfunc "RN_Guest", 5; end; OnInit: hideonnpc; end; }
+
+// --- The Witch's Hex marks: an invisible body (111) to show the effects on ---
+prt_q,1,1,4	script	Witch's Hex#RN0	111,{ end; OnInit: hideonnpc; end; }
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN1	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN2	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN3	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN4	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN5	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN6	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN7	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN8	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN9	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN10	111
+prt_q,1,1,4	duplicate(Witch's Hex#RN0)	Witch's Hex#RN11	111
+
+// --- Nightwing points the way to a guest (addtimer from the engine's loop) ---
+-	script	RN_Point	-1,{
+OnGuest:
+	if (!$@RN_Active || !$@RN_GuestNow || !($@RN_GuestOut & (1 << $@RN_GuestNow))) end;
+	callfunc "RN_Portrait", 1;
+	mes "[Nightwing]";
+	mes "Psst! ^0000FF" + callfunc("RN_GuestName", $@RN_GuestNow) + "^000000 is still human, hiding " + callfunc("RN_Navi", "over here", $@RN_GuestX, $@RN_GuestY) + ". Get there before the horde does!";
+	callfunc "RN_Portrait", 0;
+	close;
+}
+
+// --- Every fall in the run counts against its grade ---
+-	script	RN_Falls	-1,{
+OnPCDieEvent:
+	if (!$@RN_Active || strcharinfo(3) != "prt_q" || !callfunc("RN_InRun")) end;
+	$@RN_Deaths++;
+	end;
+}
+
 // --- Reward Chest NPC ---
 prt_q,150,184,4	script	Nightmare Chest#RN	10412,{
 	if (!callfunc("RN_IsOwner", "Nightmare Chest")) end;
@@ -1075,6 +1445,23 @@ prt_q,150,184,4	script	Nightmare Chest#RN	10412,{
 	next;
 	mes "[Nightmare Chest]";
 	mes "As you reach inside, you feel the curse lift from the walls. Somewhere beyond the dark, Prontera is waking up.";
+	next;
+	// the escape's grade: time and falls (S: no falls and under 25 minutes,
+	// A: 2 falls at most and under 35, B: under 45, C: the rest)
+	.@t = gettimetick(2) - $@RN_RunID;
+	if ($@RN_Deaths == 0 && .@t <= 1500) $@RN_Grade$ = "S";
+	else if ($@RN_Deaths <= 2 && .@t <= 2100) $@RN_Grade$ = "A";
+	else if (.@t <= 2700) $@RN_Grade$ = "B";
+	else $@RN_Grade$ = "C";
+	mes "[Nightmare Chest]";
+	mes "Escape: ^0000FF" + callfunc("RN_Clock", .@t) + "^000000 | Falls: ^0000FF" + $@RN_Deaths + "^000000 | Royal Guests saved: ^0000FF" + $@RN_Saved + "/5^000000";
+	mes "Grade: ^FF0000" + $@RN_Grade$ + "^000000";
+	if (!$RN_BestTime || .@t < $RN_BestTime) {
+		$RN_BestTime = .@t;
+		$RN_BestGrade$ = $@RN_Grade$;
+		$RN_BestBy$ = $@RN_Name$ + ($@RN_PID ? "'s party" : "");
+		announce "[Royal Nightmare] " + $RN_BestBy$ + " escaped the Nightmare in " + callfunc("RN_Clock", .@t) + ", a new record for the Hall of Dreamers!", bc_all, "0xFFCC00";
+	}
 	next;
 	mes "[Nightmare Chest]";
 	mes "You retrieve your guaranteed rewards!";
