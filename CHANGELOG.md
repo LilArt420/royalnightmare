@@ -5,7 +5,7 @@ The banquet fights back: new things to fight, dodge and find in every run.
 - Royal Champions: 2 gold-crowned champions of each horde monster lead Hordes 1 and 2 (large, 8x the HP). Each counts for 10 kills, and Nightwing blesses the party (Blessing and Increase Agility, Lv 10, 2 minutes) when one falls.
 - The Witch's Hex: every 25 seconds during the hordes and the grand finale, the ground under each fighter is marked and erupts 3 seconds later, for 30% of their HP (it can't kill). Step out of it.
 - The Royal Guests: 5 nobles still human hide in the streets, 2 during Horde 1 (at 25% and 60%) and 3 during Horde 2 (20%, 50%, 80%). Nightwing points everyone to each one with a navigation link; any member can lead them out within 3 minutes. Each one saved blesses the party and adds 6 of item 1000274 to everyone's hoard; all five, a Demi Freyja Antiquity.
-- The Dream Shards: at 66% and 33% of her HP the Goddess of Nightmare becomes immune until the 4 Dream Shards around the fountain are shattered (60 hits each, one point a hit).
+- The Dream Shards: at 66% and 33% of her HP the Goddess of Nightmare becomes immune until the 4 Dream Shards around the fountain are shattered (15 hits each, one point a hit).
 - Every escape gets a grade from its time and falls (S, A, B, C), shown at the chest, with a bonus for S (2 Demi Freyja Antiquities), A (1) and B (10 of item 1000274).
 - The Hall of Dreamers: Nightwing in Prontera shows the fastest escape ever (and its grade) and your own best; a new record is announced to the whole server.
 

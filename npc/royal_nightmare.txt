@@ -680,8 +680,8 @@ L_Shards:
 		callsub L_SpawnAt, .@sx[.@i], .@sy[.@i], "Dream Shard", 1951, "RN_Core_Engine::OnShardKill";
 		.@g = $@mobid[0];
 		if (!.@g || !unitexists(.@g)) continue;
-		setunitdata .@g, UMOB_MAXHP, 60;
-		setunitdata .@g, UMOB_HP, 60;
+		setunitdata .@g, UMOB_MAXHP, 15;	// 15 hits
+		setunitdata .@g, UMOB_HP, 15;
 		$@RN_ShardLeft++;
 	}
 	if (!$@RN_ShardLeft) {	// nowhere to put them: no shield
