@@ -20,6 +20,14 @@ Talk to **Nightwing** in Prontera (107, 190) 🚪
 - 🎵 **Instance music**: the Royal Nightmare theme plays the whole time you're inside, and keeps playing through stage warps.
 - 🐾 **Spare monsters**: Horde 3 scatters extra monsters around the map, so a player who dies and comes back can still finish the wave.
 
+## 🍷 The Banquet Fights Back
+- 👑 **Royal Champions**: every horde is led by 6 gold-crowned champions (2 of each monster), bigger and 8x as hardy. Each one counts for **10 kills**, and Nightwing blesses the whole party when one falls 🙏
+- 🔮 **The Witch's Hex**: every 25 seconds during the hordes and the grand finale, a Death Witch marks the ground under each fighter with a magic circle. Three seconds later it erupts for 30% of your HP. **Move!** 🏃
+- 🧑‍🤝‍🧑 **The Royal Guests**: five nobles the witches haven't turned yet are hiding in the streets (2 during Horde 1, 3 during Horde 2). Nightwing points the way with a navigation link 🧭 Reach them within 3 minutes, or the horde finds them first. Each one saved blesses the party and adds to the hoard
+- 💎 **The Dream Shards**: at 66% and 33% of her HP, the Goddess of Nightmare shields herself. Shatter the 4 Dream Shards around the fountain to break it (15 hits each, one point per hit whatever hits them, so the whole party counts) 💥
+- 🏅 **Your escape's grade**: time and falls make an **S** (no falls, under 25 minutes), **A** (2 falls at most, under 35), **B** (under 45) or **C**, and the better the grade, the bigger the hoard
+- 🏆 **The Hall of Dreamers**: Nightwing in Prontera remembers the fastest escape ever (and yours)
+
 ## 📜 Stage Flow
 1. 🧟 **Horde 1**: 700 of each monster spawn, and you must kill 500 of each (Grote, Pierrotzoist, Disguiser).
 2. 🧙‍♀️ **Queen, round 1**: 3 Death Witch MVPs.
@@ -40,6 +48,10 @@ It takes about 20-30 minutes to complete, if you're well geared ⚔️
 - 🏺 3x Demi Freyja Antiquity (102562)
 - 💰 5,000,000 Zeny
 - ✨ 100,000,000,000 Base EXP and 60,000,000,000 Job EXP
+
+On top of that, for everyone in the run:
+- 🏅 Grade **S**: 2 more Demi Freyja Antiquities, **A**: 1 more, **B**: 10 more of item 1000274
+- 🧑‍🤝‍🧑 Every Royal Guest saved: 6 more of item 1000274, and all five: 1 more Demi Freyja Antiquity
 
 ## 💾 Installing
 In Ragnarok Offline: **Settings → Mods → Find Mods → royal-nightmare → Install**. Renewal servers only.
